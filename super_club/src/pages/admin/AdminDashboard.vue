@@ -131,8 +131,8 @@ export default {
         key: 'users',
         icon: '👥',
         label: '总用户数',
-        value: '1,234',
-        change: '+12%',
+        value: '0',
+        change: '+0%',
         changeType: 'positive',
         color: '#3498db'
       },
@@ -140,26 +140,26 @@ export default {
         key: 'projects',
         icon: '🚀',
         label: '活跃项目',
-        value: '89',
-        change: '+5%',
+        value: '0',
+        change: '+0%',
         changeType: 'positive',
         color: '#e74c3c'
       },
       {
         key: 'events',
         icon: '📅',
-        label: '本月活动',
-        value: '23',
-        change: '+8%',
+        label: '即将举办',
+        value: '0',
+        change: '+0%',
         changeType: 'positive',
         color: '#f39c12'
       },
       {
         key: 'content',
         icon: '📝',
-        label: '内容总数',
-        value: '456',
-        change: '+15%',
+        label: '已发布内容',
+        value: '0',
+        change: '+0%',
         changeType: 'positive',
         color: '#27ae60'
       }
@@ -257,28 +257,42 @@ export default {
     const loadDashboardData = async () => {
       try {
         // 加载统计数据
-        const statsResponse = await adminAPI.getDashboardStats()
-        if (statsResponse.success) {
-          const data = statsResponse.data
+        const data = await adminAPI.getDashboardStats()
+        
+        if (data) {
+          // 更新统计卡片数据 - 用户
+          stats.value[0].value = (data.users?.total || 0).toLocaleString()
+          stats.value[0].change = `+${data.users?.growth_rate || 0}%`
           
-          // 更新统计卡片数据
-          stats.value[0].value = data.users.total.toLocaleString()
-          stats.value[0].change = `+${data.users.growth_rate}%`
+          // 项目 - 防止除以0
+          const projectsTotal = data.projects?.total || 0
+          const projectsActive = data.projects?.active || 0
+          stats.value[1].value = projectsActive.toString()
+          stats.value[1].change = projectsTotal > 0 
+            ? `+${Math.round((projectsActive / projectsTotal) * 100)}%` 
+            : '+0%'
           
-          stats.value[1].value = data.projects.active.toString()
-          stats.value[1].change = `+${Math.round((data.projects.active / data.projects.total) * 100)}%`
+          // 活动 - 防止除以0
+          const eventsTotal = data.events?.total || 0
+          const eventsUpcoming = data.events?.upcoming || 0
+          stats.value[2].value = eventsUpcoming.toString()
+          stats.value[2].change = eventsTotal > 0 
+            ? `+${Math.round((eventsUpcoming / eventsTotal) * 100)}%` 
+            : '+0%'
           
-          stats.value[2].value = data.events.upcoming.toString()
-          stats.value[2].change = `+${Math.round((data.events.upcoming / data.events.total) * 100)}%`
-          
-          stats.value[3].value = data.content.published.toString()
-          stats.value[3].change = `+${Math.round((data.content.published / data.content.total) * 100)}%`
+          // 内容 - 防止除以0
+          const contentTotal = data.content?.total || 0
+          const contentPublished = data.content?.published || 0
+          stats.value[3].value = contentPublished.toString()
+          stats.value[3].change = contentTotal > 0 
+            ? `+${Math.round((contentPublished / contentTotal) * 100)}%` 
+            : '+0%'
         }
         
         // 加载最近活动
-        const activitiesResponse = await adminAPI.getRecentActivities(10)
-        if (activitiesResponse.success) {
-          recentActivities.value = activitiesResponse.data.map(activity => ({
+        const activitiesData = await adminAPI.getRecentActivities(10)
+        if (activitiesData && Array.isArray(activitiesData)) {
+          recentActivities.value = activitiesData.map(activity => ({
             id: activity.id,
             icon: activity.icon,
             title: activity.title,

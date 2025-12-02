@@ -15,9 +15,15 @@ class Request {
   /**
    * 请求拦截器 - 添加认证token等
    */
-  beforeRequest(config) {
-    // 从localStorage获取token
-    const token = localStorage.getItem('access_token')
+  beforeRequest(config, url) {
+    // 判断是否是管理后台请求
+    const isAdminRequest = url && url.includes('/admin')
+    
+    // 根据请求类型选择对应的token
+    const token = isAdminRequest 
+      ? localStorage.getItem('admin_token') 
+      : localStorage.getItem('access_token')
+    
     if (token) {
       config.headers = {
         ...config.headers,
@@ -89,8 +95,8 @@ class Request {
       }
     }
 
-    // 请求拦截
-    config = this.beforeRequest(config)
+    // 请求拦截（传入url用于判断是否是管理后台请求）
+    config = this.beforeRequest(config, url)
 
     try {
       // 添加超时控制
