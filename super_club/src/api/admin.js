@@ -6,21 +6,41 @@ export const adminAPI = {
     return request.get('/admin/dashboard/stats')
   },
 
-  // 用户管理
+  // ==================== 用户管理 ====================
+  
+  // 获取用户列表
   getUsers(params = {}) {
-    return request.get('/admin/users', { params })
+    return request.get('/admin/users', params)
   },
 
+  // 创建用户
+  createUser(data) {
+    return request.post('/admin/users', data)
+  },
+
+  // 更新用户
+  updateUser(userId, data) {
+    return request.put(`/admin/users/${userId}`, data)
+  },
+
+  // 删除用户
+  deleteUser(userId) {
+    return request.delete(`/admin/users/${userId}`)
+  },
+
+  // 更新用户状态
   updateUserStatus(userId, isActive) {
-    return request.put(`/admin/users/${userId}/status`, null, {
-      params: { is_active: isActive }
-    })
+    return request.put(`/admin/users/${userId}/status?is_active=${isActive}`)
   },
 
+  // 更新用户角色
   updateUserRole(userId, role) {
-    return request.put(`/admin/users/${userId}/role`, null, {
-      params: { role }
-    })
+    return request.put(`/admin/users/${userId}/role?role=${role}`)
+  },
+
+  // 更新会员等级
+  updateUserMembership(userId, membershipLevel) {
+    return request.put(`/admin/users/${userId}/membership?membership_level=${membershipLevel}`)
   },
 
   // 项目管理

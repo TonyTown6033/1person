@@ -7,6 +7,7 @@ import ProjectPage from '../pages/ProjectPage.vue'
 import EventsPage from '../pages/EventsPage.vue'
 import ProfilePage from '../pages/ProfilePage.vue'
 import ArticleDetailPage from '../pages/ArticleDetailPage.vue'
+import LoginPage from '../pages/LoginPage.vue'
 
 // 管理后台页面
 import AdminLogin from '../pages/admin/AdminLogin.vue'
@@ -53,6 +54,12 @@ const routes = [
     path: '/articles/:id',
     name: 'article-detail',
     component: ArticleDetailPage
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginPage,
+    meta: { hideSidebar: true }
   },
   // 管理后台路由
   {

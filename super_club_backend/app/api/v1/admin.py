@@ -217,6 +217,184 @@ async def update_user_role(
     )
 
 
+@router.post("/users", response_model=ResponseModel[dict])
+async def create_admin_user(
+    request: dict,
+    current_admin: User = Depends(require_admin_user),
+    db: Session = Depends(get_db)
+):
+    """创建用户（管理员）"""
+    from app.core.security import get_password_hash
+    import uuid
+    
+    # 检查邮箱是否已存在
+    existing_user = db.query(User).filter(User.email == request.get("email")).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="该邮箱已被注册"
+        )
+    
+    # 创建用户
+    user = User(
+        id=str(uuid.uuid4()),
+        name=request.get("name"),
+        email=request.get("email"),
+        password_hash=get_password_hash(request.get("password")),
+        phone=request.get("phone"),
+        company=request.get("company"),
+        position=request.get("position"),
+        bio=request.get("bio"),
+        membership_level=request.get("membershipLevel", "free"),
+        role=request.get("role", "user"),
+        is_active=True,
+        verified=False,
+        email_verified=False
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return ResponseModel(
+        data={
+            "id": str(user.id),
+            "name": user.name,
+            "email": user.email,
+            "createdAt": user.created_at.isoformat() + "Z"
+        },
+        message="用户创建成功"
+    )
+
+
+@router.put("/users/{user_id}", response_model=ResponseModel[dict])
+async def update_admin_user(
+    user_id: str,
+    request: dict,
+    current_admin: User = Depends(require_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新用户信息（管理员）"""
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    # 更新用户信息
+    if "name" in request:
+        user.name = request["name"]
+    if "phone" in request:
+        user.phone = request["phone"]
+    if "company" in request:
+        user.company = request["company"]
+    if "position" in request:
+        user.position = request["position"]
+    if "bio" in request:
+        user.bio = request["bio"]
+    if "membershipLevel" in request:
+        user.membership_level = request["membershipLevel"]
+    if "role" in request:
+        # 只有超级管理员可以修改角色
+        if current_admin.role == "super_admin":
+            user.role = request["role"]
+    if "isActive" in request:
+        # 防止禁用自己
+        if user.id != current_admin.id:
+            user.is_active = request["isActive"]
+    
+    db.commit()
+    db.refresh(user)
+    
+    return ResponseModel(
+        data={
+            "id": str(user.id),
+            "name": user.name,
+            "email": user.email,
+            "phone": user.phone,
+            "company": user.company,
+            "position": user.position,
+            "bio": user.bio,
+            "membershipLevel": user.membership_level,
+            "role": user.role,
+            "isActive": user.is_active,
+            "updatedAt": user.updated_at.isoformat() + "Z"
+        },
+        message="用户信息已更新"
+    )
+
+
+@router.delete("/users/{user_id}", response_model=ResponseModel[dict])
+async def delete_admin_user(
+    user_id: str,
+    current_admin: User = Depends(require_admin_user),
+    db: Session = Depends(get_db)
+):
+    """删除用户（管理员）"""
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    # 防止删除自己
+    if user.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="不能删除自己的账户"
+        )
+    
+    # 防止普通管理员删除超级管理员
+    if user.role == "super_admin" and current_admin.role != "super_admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="没有权限删除超级管理员"
+        )
+    
+    db.delete(user)
+    db.commit()
+    
+    return ResponseModel(
+        data={"id": user_id},
+        message="用户已删除"
+    )
+
+
+@router.put("/users/{user_id}/membership", response_model=ResponseModel[dict])
+async def update_user_membership(
+    user_id: str,
+    membership_level: str = Query(...),
+    current_admin: User = Depends(require_admin_user),
+    db: Session = Depends(get_db)
+):
+    """更新用户会员等级"""
+    
+    if membership_level not in ["free", "premium", "vip"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无效的会员等级"
+        )
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    user.membership_level = membership_level
+    db.commit()
+    
+    return ResponseModel(
+        data={"id": str(user.id), "membershipLevel": user.membership_level},
+        message="会员等级已更新"
+    )
+
+
 @router.get("/projects", response_model=PaginatedResponse[dict])
 async def get_admin_projects(
     page: int = Query(1, ge=1),

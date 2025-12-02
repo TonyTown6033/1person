@@ -69,10 +69,10 @@
             <tr>
               <th>用户信息</th>
               <th>邮箱</th>
+              <th>角色</th>
               <th>会员等级</th>
               <th>状态</th>
               <th>注册时间</th>
-              <th>最后活跃</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -82,7 +82,7 @@
                 <div class="user-avatar">
                   <img v-if="user.avatar" :src="user.avatar" :alt="user.name" />
                   <div v-else class="avatar-placeholder">
-                    {{ user.name[0] }}
+                    {{ user.name ? user.name[0] : '?' }}
                   </div>
                 </div>
                 <div class="user-details">
@@ -93,6 +93,14 @@
                 </div>
               </td>
               <td class="user-email">{{ user.email }}</td>
+              <td class="user-role">
+                <span 
+                  class="role-badge" 
+                  :class="getRoleClass(user.role)"
+                >
+                  {{ getRoleText(user.role) }}
+                </span>
+              </td>
               <td class="user-membership">
                 <span 
                   class="membership-badge" 
@@ -111,9 +119,6 @@
               </td>
               <td class="user-created">
                 {{ formatDate(user.createdAt) }}
-              </td>
-              <td class="user-last-active">
-                {{ formatDate(user.updatedAt) }}
               </td>
               <td class="user-actions">
                 <div class="action-buttons">
@@ -268,6 +273,20 @@
             </div>
           </div>
           
+          <div class="form-row">
+            <div class="form-group">
+              <label>用户角色</label>
+              <select v-model="userForm.role">
+                <option value="user">普通用户</option>
+                <option value="admin">管理员</option>
+                <option value="super_admin">超级管理员</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <!-- 占位 -->
+            </div>
+          </div>
+          
           <div class="form-group">
             <label>个人简介</label>
             <textarea 
@@ -324,6 +343,7 @@ export default {
       company: '',
       position: '',
       membershipLevel: 'free',
+      role: 'user',
       bio: ''
     })
     
@@ -343,90 +363,54 @@ export default {
       return pages
     })
     
-    // 模拟用户数据
-    const mockUsers = [
-      {
-        id: '1',
-        name: '张三',
-        email: 'zhangsan@example.com',
-        phone: '13800138001',
-        company: '科技公司',
-        position: '前端工程师',
-        membershipLevel: 'premium',
-        bio: '热爱技术的前端开发者',
-        isActive: true,
-        avatar: null,
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2024-12-01T15:20:00Z'
-      },
-      {
-        id: '2',
-        name: '李四',
-        email: 'lisi@example.com',
-        phone: '13800138002',
-        company: '互联网公司',
-        position: '产品经理',
-        membershipLevel: 'vip',
-        bio: '专注用户体验设计',
-        isActive: true,
-        avatar: null,
-        createdAt: '2024-02-20T14:15:00Z',
-        updatedAt: '2024-12-02T09:45:00Z'
-      },
-      {
-        id: '3',
-        name: '王五',
-        email: 'wangwu@example.com',
-        phone: '13800138003',
-        company: '创业公司',
-        position: '全栈工程师',
-        membershipLevel: 'free',
-        bio: '全栈开发爱好者',
-        isActive: false,
-        avatar: null,
-        createdAt: '2024-03-10T16:45:00Z',
-        updatedAt: '2024-11-28T11:30:00Z'
-      }
-    ]
-    
     // 方法
     const loadUsers = async () => {
       loading.value = true
       try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // 获取admin_token
+        const token = localStorage.getItem('admin_token')
+        if (!token) {
+          // 没有token，跳转到登录页
+          window.location.href = '/admin/login'
+          return
+        }
         
-        let filteredUsers = [...mockUsers]
+        // 构建查询参数
+        const params = new URLSearchParams({
+          page: currentPage.value.toString(),
+          limit: pageSize.value.toString()
+        })
         
-        // 应用筛选条件
         if (filters.value.status) {
-          if (filters.value.status === 'active') {
-            filteredUsers = filteredUsers.filter(user => user.isActive)
-          } else if (filters.value.status === 'inactive') {
-            filteredUsers = filteredUsers.filter(user => !user.isActive)
-          }
+          params.append('status', filters.value.status)
         }
-        
         if (filters.value.membershipLevel) {
-          filteredUsers = filteredUsers.filter(user => 
-            user.membershipLevel === filters.value.membershipLevel
-          )
+          params.append('membership_level', filters.value.membershipLevel)
         }
-        
         if (filters.value.search) {
-          const searchTerm = filters.value.search.toLowerCase()
-          filteredUsers = filteredUsers.filter(user =>
-            user.name.toLowerCase().includes(searchTerm) ||
-            user.email.toLowerCase().includes(searchTerm) ||
-            (user.company && user.company.toLowerCase().includes(searchTerm))
-          )
+          params.append('search', filters.value.search)
         }
         
-        totalUsers.value = filteredUsers.length
-        users.value = filteredUsers.slice(
-          (currentPage.value - 1) * pageSize.value,
-          currentPage.value * pageSize.value
-        )
+        const response = await fetch(`http://127.0.0.1:8001/api/admin/users?${params}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (response.status === 401) {
+          // Token无效，清除并跳转到登录页
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_user')
+          window.location.href = '/admin/login'
+          return
+        }
+        
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          users.value = result.data.items || []
+          totalUsers.value = result.data.pagination?.total || 0
+        }
       } catch (error) {
         console.error('加载用户失败:', error)
       } finally {
@@ -474,7 +458,26 @@ export default {
       return isActive ? 'status-active' : 'status-inactive'
     }
     
+    const getRoleText = (role) => {
+      const texts = {
+        user: '普通用户',
+        admin: '管理员',
+        super_admin: '超级管理员'
+      }
+      return texts[role] || '普通用户'
+    }
+    
+    const getRoleClass = (role) => {
+      const classes = {
+        user: 'role-user',
+        admin: 'role-admin',
+        super_admin: 'role-super-admin'
+      }
+      return classes[role] || 'role-user'
+    }
+    
     const formatDate = (dateString) => {
+      if (!dateString) return '-'
       const date = new Date(dateString)
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',
@@ -495,6 +498,7 @@ export default {
         company: '',
         position: '',
         membershipLevel: 'free',
+        role: 'user',
         bio: ''
       }
     }
@@ -509,7 +513,8 @@ export default {
         phone: user.phone || '',
         company: user.company || '',
         position: user.position || '',
-        membershipLevel: user.membershipLevel,
+        membershipLevel: user.membershipLevel || 'free',
+        role: user.role || 'user',
         bio: user.bio || ''
       }
       showEditModal.value = true
@@ -525,25 +530,92 @@ export default {
     const saveUser = async () => {
       saving.value = true
       try {
-        // 验证表单
-        if (showAddModal.value && userForm.value.password !== userForm.value.confirmPassword) {
-          alert('两次输入的密码不一致')
+        const token = localStorage.getItem('admin_token')
+        if (!token) {
+          window.location.href = '/admin/login'
           return
         }
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
+        // 验证表单
         if (showAddModal.value) {
-          console.log('添加用户:', userForm.value)
+          if (!userForm.value.name || !userForm.value.email || !userForm.value.password) {
+            alert('请填写必填字段')
+            saving.value = false
+            return
+          }
+          if (userForm.value.password !== userForm.value.confirmPassword) {
+            alert('两次输入的密码不一致')
+            saving.value = false
+            return
+          }
+          if (userForm.value.password.length < 6) {
+            alert('密码长度至少6位')
+            saving.value = false
+            return
+          }
+          
+          // 创建用户
+          const response = await fetch('http://127.0.0.1:8001/api/admin/users', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: userForm.value.name,
+              email: userForm.value.email,
+              password: userForm.value.password,
+              phone: userForm.value.phone,
+              company: userForm.value.company,
+              position: userForm.value.position,
+              membershipLevel: userForm.value.membershipLevel,
+              role: userForm.value.role,
+              bio: userForm.value.bio
+            })
+          })
+          
+          const result = await response.json()
+          if (result.success) {
+            alert('用户创建成功')
+          } else {
+            alert(result.detail || '创建失败')
+            saving.value = false
+            return
+          }
         } else {
-          console.log('编辑用户:', editingUser.value.id, userForm.value)
+          // 更新用户
+          const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${editingUser.value.id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              name: userForm.value.name,
+              phone: userForm.value.phone,
+              company: userForm.value.company,
+              position: userForm.value.position,
+              membershipLevel: userForm.value.membershipLevel,
+              role: userForm.value.role,
+              bio: userForm.value.bio
+            })
+          })
+          
+          const result = await response.json()
+          if (result.success) {
+            alert('用户信息已更新')
+          } else {
+            alert(result.detail || '更新失败')
+            saving.value = false
+            return
+          }
         }
         
         closeModals()
         loadUsers()
       } catch (error) {
         console.error('保存用户失败:', error)
+        alert('保存用户失败')
       } finally {
         saving.value = false
       }
@@ -551,13 +623,30 @@ export default {
     
     const toggleUserStatus = async (user) => {
       try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
+        const token = localStorage.getItem('admin_token')
+        if (!token) {
+          window.location.href = '/admin/login'
+          return
+        }
         
-        user.isActive = !user.isActive
-        console.log('切换用户状态:', user.id, user.isActive)
+        const newStatus = !user.isActive
+        const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${user.id}/status?is_active=${newStatus}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        const result = await response.json()
+        if (result.success) {
+          user.isActive = newStatus
+          alert(`用户已${newStatus ? '启用' : '禁用'}`)
+        } else {
+          alert(result.detail || '操作失败')
+        }
       } catch (error) {
         console.error('切换用户状态失败:', error)
+        alert('操作失败')
       }
     }
     
@@ -567,13 +656,29 @@ export default {
       }
       
       try {
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
+        const token = localStorage.getItem('admin_token')
+        if (!token) {
+          window.location.href = '/admin/login'
+          return
+        }
         
-        console.log('删除用户:', user.id)
-        loadUsers()
+        const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${user.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        const result = await response.json()
+        if (result.success) {
+          alert('用户已删除')
+          loadUsers()
+        } else {
+          alert(result.detail || '删除失败')
+        }
       } catch (error) {
         console.error('删除用户失败:', error)
+        alert('删除失败')
       }
     }
     
@@ -598,6 +703,8 @@ export default {
       getMembershipClass,
       getMembershipText,
       getStatusClass,
+      getRoleText,
+      getRoleClass,
       formatDate,
       editUser,
       closeModals,
@@ -818,6 +925,32 @@ export default {
 .membership-vip {
   background-color: #fff3e0;
   color: #f57c00;
+}
+
+/* 角色徽章 */
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 70px;
+}
+
+.role-user {
+  background-color: #f0f0f0;
+  color: #666;
+}
+
+.role-admin {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.role-super-admin {
+  background-color: #fce4ec;
+  color: #c2185b;
 }
 
 /* 状态徽章 */

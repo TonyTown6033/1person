@@ -54,15 +54,33 @@
         <button class="footer-btn active">首页</button>
         <button class="footer-btn">名片</button>
       </div>
-      <div class="user-profile">
+      
+      <!-- 已登录状态 -->
+      <div v-if="isLoggedIn" class="user-profile">
         <div class="avatar">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=greta" alt="greta" />
+          <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.name" />
+          <div v-else class="avatar-placeholder">{{ currentUser?.name?.[0] || '?' }}</div>
         </div>
-        <span class="username">greta</span>
-        <svg class="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-        </svg>
+        <span class="username">{{ currentUser?.name || '用户' }}</span>
+        <button @click="handleLogout" class="logout-btn" title="退出登录">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+      
+      <!-- 未登录状态 -->
+      <div v-else class="login-prompt">
+        <RouterLink to="/login" class="login-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>登录 / 注册</span>
+        </RouterLink>
       </div>
     </div>
   </aside>
@@ -71,9 +89,16 @@
   <header class="mobile-header">
     <RouterLink to="/" class="mobile-logo">Pitch.</RouterLink>
     <div class="mobile-header-actions">
-      <button class="mobile-header-btn">首页</button>
-      <button class="mobile-header-btn">名片</button>
-      <button class="mobile-header-btn mobile-login-btn">登录</button>
+      <template v-if="isLoggedIn">
+        <div class="mobile-user-info">
+          <div class="mobile-avatar">
+            <img v-if="currentUser?.avatar" :src="currentUser.avatar" :alt="currentUser.name" />
+            <span v-else>{{ currentUser?.name?.[0] || '?' }}</span>
+          </div>
+        </div>
+        <button @click="handleLogout" class="mobile-header-btn">退出</button>
+      </template>
+      <RouterLink v-else to="/login" class="mobile-header-btn mobile-login-btn">登录</RouterLink>
     </div>
   </header>
 
@@ -126,9 +151,51 @@
 </template>
 
 <script setup>
-import { useRoute } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
+
+// 用户状态
+const currentUser = ref(null)
+
+// 计算属性：是否已登录
+const isLoggedIn = computed(() => {
+  return !!currentUser.value && !!localStorage.getItem('access_token')
+})
+
+// 加载用户信息
+const loadUser = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      currentUser.value = JSON.parse(userStr)
+    } catch (e) {
+      currentUser.value = null
+    }
+  }
+}
+
+// 退出登录
+const handleLogout = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('user')
+  currentUser.value = null
+  router.push('/')
+}
+
+onMounted(() => {
+  loadUser()
+  
+  // 监听storage变化（其他标签页登录/登出）
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'user' || e.key === 'access_token') {
+      loadUser()
+    }
+  })
+})
 </script>
 
 <style scoped>
@@ -254,6 +321,97 @@ const route = useRoute()
   height: 20px;
   color: #000000;
   cursor: pointer;
+}
+
+/* 头像占位符 */
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 退出按钮 */
+.logout-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn:hover {
+  color: #e74c3c;
+}
+
+.logout-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 登录提示 */
+.login-prompt {
+  padding-top: 8px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.login-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.login-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 移动端用户信息 */
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mobile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* 移动端顶部导航栏 */

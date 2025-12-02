@@ -1,6 +1,6 @@
 <template>
-  <div class="app-container" :class="{ 'admin-layout': isAdminRoute }">
-    <Sidebar v-if="!isAdminRoute" />
+  <div class="app-container" :class="{ 'admin-layout': isAdminRoute, 'login-layout': isLoginRoute }">
+    <Sidebar v-if="!isAdminRoute && !isLoginRoute" />
     <RouterView />
   </div>
 </template>
@@ -16,6 +16,11 @@ const route = useRoute()
 const isAdminRoute = computed(() => {
   return route.path.startsWith('/admin')
 })
+
+// 检查是否是登录页面
+const isLoginRoute = computed(() => {
+  return route.path === '/login'
+})
 </script>
 
 <style scoped>
@@ -30,6 +35,12 @@ const isAdminRoute = computed(() => {
   display: block;
   height: 100vh;
   background-color: #f5f6fa;
+}
+
+/* 登录页面布局 */
+.app-container.login-layout {
+  display: block;
+  height: 100vh;
 }
 
 /* 移动端为底部导航栏留出空间 */

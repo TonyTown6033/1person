@@ -36,13 +36,31 @@ class Request {
   /**
    * 响应拦截器 - 统一处理响应
    */
-  async afterResponse(response) {
+  async afterResponse(response, url) {
     const data = await response.json()
 
     // 根据API文档的响应格式处理
     if (!response.ok) {
+      // 401 未授权 - 清除token并跳转到登录页
+      if (response.status === 401) {
+        const isAdminRequest = url && url.includes('/admin')
+        if (isAdminRequest) {
+          localStorage.removeItem('admin_token')
+          localStorage.removeItem('admin_refresh_token')
+          localStorage.removeItem('admin_user')
+          // 跳转到管理后台登录页
+          if (window.location.pathname !== '/admin/login') {
+            window.location.href = '/admin/login'
+          }
+        } else {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user')
+        }
+      }
+      
       // HTTP错误
-      const error = new Error(data.error?.message || '请求失败')
+      const error = new Error(data.error?.message || data.detail || '请求失败')
       error.code = data.error?.code
       error.details = data.error?.details
       error.status = response.status
@@ -113,8 +131,8 @@ class Request {
       // 记录响应
       apiLogger.logApiResponse(method, fullURL, response.status, duration)
 
-      // 响应拦截
-      const result = await this.afterResponse(response)
+      // 响应拦截（传入url用于处理401跳转）
+      const result = await this.afterResponse(response, url)
       return result
     } catch (error) {
       const duration = Date.now() - startTime
