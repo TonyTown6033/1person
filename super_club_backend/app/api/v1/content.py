@@ -188,6 +188,12 @@ async def create_article(
 ):
     """创建文章"""
     from datetime import datetime
+    import json as json_module
+    
+    # 处理 tags - 转换为 JSON 字符串存储
+    tags = request.get("tags")
+    if tags and isinstance(tags, list):
+        tags = json_module.dumps(tags)
     
     article = Content(
         title=request["title"],
@@ -197,7 +203,7 @@ async def create_article(
         department=request.get("department"),
         author_id=current_user.id,
         cover_image=request.get("coverImage"),
-        tags=request.get("tags", []),
+        tags=tags,
         is_published=request.get("isPublished", False),
         published_at=datetime.now() if request.get("isPublished") else None,
         reading_time=request.get("readingTime", 5),
@@ -303,7 +309,7 @@ async def like_article(
     db: Session = Depends(get_db)
 ):
     """点赞文章"""
-    article = db.query(Content).filter(Content.id == uuid.UUID(article_id)).first()
+    article = db.query(Content).filter(Content.id == article_id).first()
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -349,7 +355,7 @@ async def unlike_article(
     db: Session = Depends(get_db)
 ):
     """取消点赞"""
-    article = db.query(Content).filter(Content.id == uuid.UUID(article_id)).first()
+    article = db.query(Content).filter(Content.id == article_id).first()
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -390,7 +396,7 @@ async def create_comment(
     db: Session = Depends(get_db)
 ):
     """评论文章"""
-    article = db.query(Content).filter(Content.id == uuid.UUID(article_id)).first()
+    article = db.query(Content).filter(Content.id == article_id).first()
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -401,7 +407,7 @@ async def create_comment(
         content_id=article.id,
         user_id=current_user.id,
         content=request["content"],
-        parent_id=uuid.UUID(request["parentId"]) if request.get("parentId") else None
+        parent_id=request.get("parentId")  # 直接使用字符串 ID
     )
     db.add(comment)
     article.comment_count += 1
@@ -433,7 +439,7 @@ async def get_comments(
 ):
     """获取评论列表"""
     query = db.query(Comment).filter(
-        Comment.content_id == uuid.UUID(article_id),
+        Comment.content_id == article_id,
         Comment.is_deleted == False,
         Comment.parent_id.is_(None)  # 只获取顶级评论
     )

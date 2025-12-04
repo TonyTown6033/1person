@@ -161,11 +161,11 @@ async def add_favorite(
     db: Session = Depends(get_db)
 ):
     """添加收藏"""
-    # 检查是否已收藏
+    # 检查是否已收藏（resource_id 使用字符串直接比较）
     existing = db.query(Favorite).filter(
         Favorite.user_id == current_user.id,
         Favorite.resource_type == request.type,
-        Favorite.resource_id == uuid.UUID(request.resourceId)
+        Favorite.resource_id == request.resourceId
     ).first()
     
     if existing:
@@ -177,7 +177,7 @@ async def add_favorite(
     favorite = Favorite(
         user_id=current_user.id,
         resource_type=request.type,
-        resource_id=uuid.UUID(request.resourceId)
+        resource_id=request.resourceId  # 直接使用字符串
     )
     db.add(favorite)
     db.commit()
@@ -202,7 +202,7 @@ async def delete_favorite(
 ):
     """取消收藏"""
     favorite = db.query(Favorite).filter(
-        Favorite.id == uuid.UUID(favorite_id),
+        Favorite.id == favorite_id,  # 直接使用字符串
         Favorite.user_id == current_user.id
     ).first()
     

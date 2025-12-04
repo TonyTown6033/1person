@@ -23,6 +23,13 @@ dependencies = [
 [tool.uv]
 
 [tool.uv.sources]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.25.0,<0.28.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+]
 # 可在此添加私有源镜像，如需要：
 # "pypi" = { url = "https://pypi.tuna.tsinghua.edu.cn/simple" }
 
