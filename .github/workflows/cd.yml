@@ -5,13 +5,16 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# 使用 GitHub 内置的 GITHUB_TOKEN 登录 GHCR，需要开启 packages: write 权限
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-push-images:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
 
-    # 如果你使用 GitHub Container Registry (GHCR)，需要在项目 Settings -> Secrets 中配置：
-    # - CR_PAT: 用于推送镜像的 Personal Access Token
     env:
       REGISTRY: ghcr.io
       IMAGE_NAMESPACE: ${{ github.repository_owner }}/super-club
@@ -25,7 +28,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set image tags
         id: tags
