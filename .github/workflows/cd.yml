@@ -1,0 +1,99 @@
+name: CD
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push-images:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+
+    # 如果你使用 GitHub Container Registry (GHCR)，需要在项目 Settings -> Secrets 中配置：
+    # - CR_PAT: 用于推送镜像的 Personal Access Token
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAMESPACE: ${{ github.repository_owner }}/super-club
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: Set image tags
+        id: tags
+        run: |
+          SHA_TAG=${GITHUB_SHA::7}
+          echo "backend_image=${REGISTRY}/${IMAGE_NAMESPACE}-backend:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "frontend_image=${REGISTRY}/${IMAGE_NAMESPACE}-frontend:${SHA_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -f super_club_backend/Dockerfile \
+            -t ${{ steps.tags.outputs.backend_image }} \
+            ./super_club_backend
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -f super_club/Dockerfile \
+            -t ${{ steps.tags.outputs.frontend_image }} \
+            ./super_club
+
+      - name: Push backend image
+        run: docker push ${{ steps.tags.outputs.backend_image }}
+
+      - name: Push frontend image
+        run: docker push ${{ steps.tags.outputs.frontend_image }}
+
+  # 部署 Job（示例：通过 SSH 到服务器上执行 docker-compose）
+  deploy:
+    name: Deploy to Server
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    # 需要在仓库 Secrets 中配置：
+    # - SSH_HOST
+    # - SSH_USER
+    # - SSH_KEY
+    # 以及在服务器上的 /opt/superclub/docker-compose.yml 中
+    # 使用上面推送的镜像标签（可以通过 .env 或 compose 的 image 字段固定）
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Copy docker-compose to server (optional, if you keep compose in repo)
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
+            docker-compose.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/superclub/docker-compose.yml
+
+      - name: Deploy via docker-compose
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          set -e
+          cd /opt/superclub
+          # 更新代码（如果服务器上也是 git clone 的方式）
+          if [ -d .git ]; then
+            git pull || true
+          fi
+          # 拉取最新镜像并重启
+          docker-compose pull
+          docker-compose up -d
+          EOF
+
+
