@@ -34,8 +34,10 @@ jobs:
         id: tags
         run: |
           SHA_TAG=${GITHUB_SHA::7}
-          echo "backend_image=${REGISTRY}/${IMAGE_NAMESPACE}-backend:${SHA_TAG}" >> $GITHUB_OUTPUT
-          echo "frontend_image=${REGISTRY}/${IMAGE_NAMESPACE}-frontend:${SHA_TAG}" >> $GITHUB_OUTPUT
+          # GHCR 要求仓库名必须是小写
+          IMAGE_NS_LOWER=$(echo "${IMAGE_NAMESPACE}" | tr '[:upper:]' '[:lower:]')
+          echo "backend_image=${REGISTRY}/${IMAGE_NS_LOWER}-backend:${SHA_TAG}" >> $GITHUB_OUTPUT
+          echo "frontend_image=${REGISTRY}/${IMAGE_NS_LOWER}-frontend:${SHA_TAG}" >> $GITHUB_OUTPUT
 
       - name: Build backend image
         run: |
