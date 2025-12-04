@@ -84,8 +84,8 @@ jobs:
       - name: Copy docker-compose to server (optional, if you keep compose in repo)
         run: |
           rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
-            docker-compose.yml \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/superclub/docker-compose.yml
+            docker-compose.yml docker-compose.prod.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/superclub/
 
       - name: Deploy via docker-compose
         run: |
@@ -96,9 +96,9 @@ jobs:
           if [ -d .git ]; then
             git pull || true
           fi
-          # 拉取最新镜像并重启（使用新版 docker compose 插件）
-          docker compose pull
-          docker compose up -d
+          # 使用生产环境的 Compose 文件（不包含 MySQL 服务）
+          docker compose -f docker-compose.prod.yml pull
+          docker compose -f docker-compose.prod.yml up -d
           EOF
 
 

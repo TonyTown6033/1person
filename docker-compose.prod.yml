@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # ==================== 后端 API 服务（无内置 MySQL） ====================
+  backend:
+    build:
+      context: ./super_club_backend
+      dockerfile: Dockerfile
+    container_name: superclub-backend
+    restart: always
+    environment:
+      # 使用外部 MySQL 数据库，请在服务器的 .env 中配置 DATABASE_URL
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY:-your-super-secret-key-change-in-production}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - TZ=Asia/Shanghai
+      # CORS 配置 - 设置为你的前端域名
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+    ports:
+      - "${BACKEND_PORT:-8001}:8000"
+    networks:
+      - superclub-network
+
+  # ==================== 前端服务 ====================
+  frontend:
+    build:
+      context: ./super_club
+      dockerfile: Dockerfile
+      args:
+        # 设置为你的公网后端地址
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://your-server-ip:8001/api}
+    container_name: superclub-frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    networks:
+      - superclub-network
+
+# ==================== 网络 ====================
+networks:
+  superclub-network:
+    driver: bridge
+
+
