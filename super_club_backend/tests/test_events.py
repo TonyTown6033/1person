@@ -21,14 +21,15 @@ class TestGetEvents:
         """测试活动分页"""
         from app.models.event import Event
         
-        # 创建多个活动（使用正确的模型字段名）
+        # 创建多个未来的活动，确保都满足 start_date > now 过滤条件
         for i in range(10):
+            now = datetime.now()
             event = Event(
                 title=f"活动{i}",
                 description=f"描述{i}",
                 location="北京",
-                start_date=datetime.now() + timedelta(days=i),
-                end_date=datetime.now() + timedelta(days=i, hours=2),
+                start_date=now + timedelta(days=i + 1),
+                end_date=now + timedelta(days=i + 1, hours=2),
                 status="upcoming"
             )
             db.add(event)
