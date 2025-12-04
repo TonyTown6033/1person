@@ -96,9 +96,9 @@ jobs:
           if [ -d .git ]; then
             git pull || true
           fi
-          # 拉取最新镜像并重启
-          docker-compose pull
-          docker-compose up -d
+          # 拉取最新镜像并重启（使用新版 docker compose 插件）
+          docker compose pull
+          docker compose up -d
           EOF
 
 
