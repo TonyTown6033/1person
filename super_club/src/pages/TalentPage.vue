@@ -1,7 +1,7 @@
 <template>
   <main class="talent-page">
     <section class="page-header">
-      <h1 class="page-title">超级牛人库</h1>
+      <h1 class="page-title">Super Elite Card</h1>
       <p class="page-subtitle">发现各行各业的顶尖操盘手，快速建立你的专家顾问团。</p>
 
       <div class="header-actions">
