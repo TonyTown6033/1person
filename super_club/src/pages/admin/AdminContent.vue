@@ -353,6 +353,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue'
+import { API_CONFIG } from '@/config/api'
 import { adminAPI } from '../../api/admin.js'
 import ContentDetailModal from '../../components/ContentDetailModal.vue'
 
@@ -432,7 +433,7 @@ export default {
         if (filters.department) params.append('department', filters.department)
         if (filters.isPublished !== '') params.append('is_published', filters.isPublished)
         
-        const response = await fetch(`http://127.0.0.1:8001/api/admin/content?${params}`, {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/content?${params}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -457,7 +458,7 @@ export default {
     const loadStats = async () => {
       try {
         const token = localStorage.getItem('admin_token')
-        const response = await fetch('http://127.0.0.1:8001/api/admin/content/stats/overview', {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/content/stats/overview`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -546,8 +547,8 @@ export default {
         }
         
         const url = editingContent.value 
-          ? `http://127.0.0.1:8001/api/admin/content/${editingContent.value.id}`
-          : 'http://127.0.0.1:8001/api/admin/content'
+          ? `${API_CONFIG.baseURL}/admin/content/${editingContent.value.id}`
+          : `${API_CONFIG.baseURL}/admin/content`
         
         const response = await fetch(url, {
           method: editingContent.value ? 'PUT' : 'POST',
@@ -582,7 +583,7 @@ export default {
         const newStatus = !content.isPublished
         
         const response = await fetch(
-          `http://127.0.0.1:8001/api/admin/content/${content.id}/publish?is_published=${newStatus}`,
+          `${API_CONFIG.baseURL}/admin/content/${content.id}/publish?is_published=${newStatus}`,
           {
             method: 'PUT',
             headers: {
@@ -609,7 +610,7 @@ export default {
         const newStatus = !content.isFeatured
         
         const response = await fetch(
-          `http://127.0.0.1:8001/api/admin/content/${content.id}/featured?is_featured=${newStatus}`,
+          `${API_CONFIG.baseURL}/admin/content/${content.id}/featured?is_featured=${newStatus}`,
           {
             method: 'PUT',
             headers: {
@@ -644,7 +645,7 @@ export default {
         const token = localStorage.getItem('admin_token')
         
         const response = await fetch(
-          `http://127.0.0.1:8001/api/admin/content/${deletingContent.value.id}`,
+          `${API_CONFIG.baseURL}/admin/content/${deletingContent.value.id}`,
           {
             method: 'DELETE',
             headers: {
@@ -706,7 +707,7 @@ export default {
       
       try {
         const token = localStorage.getItem('admin_token')
-        const response = await fetch(`http://127.0.0.1:8001/api/admin/content/${content.id}`, {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/content/${content.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -751,7 +752,7 @@ export default {
         const newStatus = !targetContent.isPublished
         
         const response = await fetch(
-          `http://127.0.0.1:8001/api/admin/content/${targetContent.id}/publish?is_published=${newStatus}`,
+          `${API_CONFIG.baseURL}/admin/content/${targetContent.id}/publish?is_published=${newStatus}`,
           {
             method: 'PUT',
             headers: {

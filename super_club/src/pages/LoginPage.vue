@@ -120,6 +120,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
 
 const router = useRouter()
 
@@ -146,7 +147,7 @@ const handleLogin = async () => {
   error.value = ''
   
   try {
-    const response = await fetch('http://127.0.0.1:8001/api/auth/login', {
+    const response = await fetch(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.LOGIN}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -195,7 +196,7 @@ const handleRegister = async () => {
   success.value = ''
   
   try {
-    const response = await fetch('http://127.0.0.1:8001/api/auth/register', {
+    const response = await fetch(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.REGISTER}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -1,7 +1,13 @@
 // API 配置文件
+const DEFAULT_API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  (typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}:8001/api`
+    : 'http://127.0.0.1:8001/api')
+
 export const API_CONFIG = {
   // 后端API基础URL（优先使用环境变量，否则使用默认值）
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api',
+  baseURL: DEFAULT_API_BASE,
 
   // 请求超时时间（毫秒）
   timeout: 10000,

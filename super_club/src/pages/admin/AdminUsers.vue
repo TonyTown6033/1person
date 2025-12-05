@@ -312,6 +312,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { API_CONFIG } from '@/config/api'
 
 export default {
   name: 'AdminUsers',
@@ -391,7 +392,7 @@ export default {
           params.append('search', filters.value.search)
         }
         
-        const response = await fetch(`http://127.0.0.1:8001/api/admin/users?${params}`, {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/users?${params}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -555,7 +556,7 @@ export default {
           }
           
           // 创建用户
-          const response = await fetch('http://127.0.0.1:8001/api/admin/users', {
+          const response = await fetch(`${API_CONFIG.baseURL}/admin/users`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -584,7 +585,7 @@ export default {
           }
         } else {
           // 更新用户
-          const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${editingUser.value.id}`, {
+          const response = await fetch(`${API_CONFIG.baseURL}/admin/users/${editingUser.value.id}`, {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -630,7 +631,7 @@ export default {
         }
         
         const newStatus = !user.isActive
-        const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${user.id}/status?is_active=${newStatus}`, {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/users/${user.id}/status?is_active=${newStatus}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -662,7 +663,7 @@ export default {
           return
         }
         
-        const response = await fetch(`http://127.0.0.1:8001/api/admin/users/${user.id}`, {
+        const response = await fetch(`${API_CONFIG.baseURL}/admin/users/${user.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`

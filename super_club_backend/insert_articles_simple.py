@@ -1,15 +1,23 @@
 #!/usr/bin/env python3
 """
 简单插入脚本 - 直接连接数据库插入文章
-不需要安装所有依赖，只需要 psycopg2
+依赖尽量精简：主要是 psycopg2 + python-dotenv（可选）
 """
 import psycopg2
 from datetime import datetime
 import uuid
 import sys
+import os
+from dotenv import load_dotenv
 
-# 数据库配置（从 config.py 获取）
-DATABASE_URL = "postgresql://postgres:tbrn2kq9@test-db-postgresql.ns-tmbwyn2v.svc:5432/postgres"
+# 优先从环境变量 / .env 中读取数据库配置，避免在代码里硬编码真实连接串
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    print("❌ 未找到 DATABASE_URL 配置，请在环境变量或 .env 中设置，例如：")
+    print("   DATABASE_URL=postgresql://user:password@host:5432/dbname")
+    sys.exit(1)
 
 # 测试文章数据
 articles = [

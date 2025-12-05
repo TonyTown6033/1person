@@ -31,6 +31,7 @@
 import { ref, onMounted } from 'vue'
 import { contentAPI } from '@/api'
 import { componentLogger } from '@/utils/logger'
+import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
 import ArticleItem from './ArticleItem.vue'
 import ContentDetailModal from './ContentDetailModal.vue'
 
@@ -101,7 +102,7 @@ const handleViewDetail = async (article) => {
   
   try {
     // 调用API获取文章详情
-    const response = await fetch(`http://127.0.0.1:8001/api/content/articles/${article.id}`)
+    const response = await fetch(`${API_CONFIG.baseURL}${API_ENDPOINTS.CONTENT.ARTICLE_DETAIL(article.id)}`)
     const data = await response.json()
     
     if (data.success && data.data) {

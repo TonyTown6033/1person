@@ -48,6 +48,7 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { API_CONFIG, API_ENDPOINTS } from '@/config/api'
 
 export default {
   name: 'AdminLogin',
@@ -66,8 +67,7 @@ export default {
       error.value = ''
       
       try {
-        // 直接使用fetch调用，因为authAPI可能有问题
-        const response = await fetch('http://127.0.0.1:8001/api/auth/login', {
+        const response = await fetch(`${API_CONFIG.baseURL}${API_ENDPOINTS.AUTH.LOGIN}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
