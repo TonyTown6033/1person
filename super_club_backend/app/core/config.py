@@ -20,7 +20,3 @@ class Settings(BaseSettings):
 # 加载 .env ，然后由 Settings 自动读取环境变量/默认值
 load_dotenv()
 settings = Settings()
-
-# 强制使用MySQL配置
-settings.DATABASE_URL = "mysql+pymysql://root:root123456@localhost:3306/super_club"
-
